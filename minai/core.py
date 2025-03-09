@@ -15,6 +15,7 @@ __all__ = ['def_device', 'set_seed', 'Dataset', 'TfmDataset', 'get_dls', 'collat
 import sys, gc, traceback, math, typing, random, numpy as np
 from collections.abc import Mapping
 from copy import copy
+from time import time
 from itertools import zip_longest
 from functools import partial, wraps
 from operator import attrgetter, itemgetter
