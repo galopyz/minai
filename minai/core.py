@@ -74,7 +74,7 @@ def collate_dict(ds):
     def _f(b): return get(default_collate(b))
     return _f
 
-# %% ../core.ipynb 28
+# %% ../core.ipynb 35
 class DataLoaders:
     "Convert a `DatasetDict` into a pair of `DataLoader`s"
     def __init__(self, *dls): self.train,self.valid = dls[:2]
@@ -84,7 +84,7 @@ class DataLoaders:
         f = collate_dict(dd['train'])
         return cls(*get_dls(*dd.values(), bs=batch_size, collate_fn=f))
 
-# %% ../core.ipynb 35
+# %% ../core.ipynb 45
 @fc.delegates(plt.Axes.imshow)
 def show_image(im, ax=None, figsize=None, title=None, noframe=True, **kwargs):
     "Show a PIL or PyTorch image on `ax`."
@@ -101,7 +101,7 @@ def show_image(im, ax=None, figsize=None, title=None, noframe=True, **kwargs):
     if noframe: ax.axis('off')
     return ax
 
-# %% ../core.ipynb 36
+# %% ../core.ipynb 46
 @fc.delegates(plt.subplots, keep=True)
 def subplots(
     nrows:int=1, # Number of rows in returned axes grid
@@ -118,7 +118,7 @@ def subplots(
     if nrows*ncols==1: ax = np.array([ax])
     return fig,ax
 
-# %% ../core.ipynb 37
+# %% ../core.ipynb 47
 @fc.delegates(subplots)
 def get_grid(
     n:int, # Number of axes
@@ -140,7 +140,7 @@ def get_grid(
     if title is not None: fig.suptitle(title, weight=weight, size=size)
     return fig,axs
 
-# %% ../core.ipynb 38
+# %% ../core.ipynb 48
 @fc.delegates(subplots)
 def show_images(ims:list, # Images to show
                 nrows:typing.Union[int, None]=None, # Number of rows in grid
@@ -151,40 +151,40 @@ def show_images(ims:list, # Images to show
     axs = get_grid(len(ims), nrows, ncols, **kwargs)[1].flat
     for im,t,ax in zip_longest(ims, [] if titles is None else titles, axs): show_image(im, ax=ax, title=t)
 
-# %% ../core.ipynb 44
+# %% ../core.ipynb 54
 def_device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# %% ../core.ipynb 45
+# %% ../core.ipynb 55
 def to_device(x, device=def_device):
     if isinstance(x, torch.Tensor): return x.to(device)
     if isinstance(x, Mapping): return {k:v.to(device) for k,v in x.items()}
     return type(x)(to_device(o, device) for o in x)
 
-# %% ../core.ipynb 46
+# %% ../core.ipynb 56
 def to_cpu(x):
     if isinstance(x, Mapping): return {k:to_cpu(v) for k,v in x.items()}
     if isinstance(x, list): return [to_cpu(o) for o in x]
     if isinstance(x, tuple): return tuple(to_cpu(list(x)))
     return x.detach().cpu()
 
-# %% ../core.ipynb 47
+# %% ../core.ipynb 57
 def collate_device(b): return to_device(default_collate(b))
 
-# %% ../core.ipynb 52
+# %% ../core.ipynb 62
 class CancelFitException(Exception): pass
 class CancelBatchException(Exception): pass
 class CancelEpochException(Exception): pass
 
-# %% ../core.ipynb 53
+# %% ../core.ipynb 63
 class Callback(): order = 0
 
-# %% ../core.ipynb 54
+# %% ../core.ipynb 64
 def run_cbs(cbs, method_nm, learn=None):
     for cb in sorted(cbs, key=attrgetter('order')):
         method = getattr(cb, method_nm, None)
         if method is not None: method(learn)
 
-# %% ../core.ipynb 55
+# %% ../core.ipynb 65
 class with_cbs:
     def __init__(self, nm): self.nm = nm
     def __call__(self, f):
@@ -197,10 +197,10 @@ class with_cbs:
             finally: o.callback(f'cleanup_{self.nm}')
         return _f
 
-# %% ../core.ipynb 57
+# %% ../core.ipynb 67
 from itertools import cycle
 
-# %% ../core.ipynb 58
+# %% ../core.ipynb 68
 class CycleDL():
     def __init__(self, items, sz=None):
         self.items = items
@@ -212,7 +212,7 @@ class CycleDL():
         if self.it is None: self.it = cycle(iter(self.items))
         for i in range(self.sz): yield next(self.it)
 
-# %% ../core.ipynb 60
+# %% ../core.ipynb 70
 class Learner():
     def __init__(self, model, dls=(0,), loss_func=F.mse_loss, lr=0.1, cbs=None, opt_func=optim.SGD, epoch_sz=None):
         cbs = fc.L(cbs)
@@ -270,7 +270,7 @@ class Learner():
     @property
     def training(self): return self.model.training
 
-# %% ../core.ipynb 61
+# %% ../core.ipynb 71
 def _get_inp(b, n_inp, inp_nm):
     if inp_nm is not None: return [b[inp_nm]]
     return b[:n_inp]
@@ -282,7 +282,7 @@ def _get_lbl(b, n_inp, lbl_nm):
 def _get_preds(b, preds_nm):
     return b if preds_nm is None else getattr(b, preds_nm)
 
-# %% ../core.ipynb 62
+# %% ../core.ipynb 72
 class TrainLearner(Learner):
     def __init__(self, model, dls, loss_func, lr=None, cbs=None, opt_func=torch.optim.SGD, epoch_sz=None,
                  n_inp=1, inp_nm=None, lbl_nm=None, preds_nm=None):
@@ -302,7 +302,7 @@ class TrainLearner(Learner):
     def step(self): self.opt.step()
     def zero_grad(self): self.opt.zero_grad()
 
-# %% ../core.ipynb 63
+# %% ../core.ipynb 73
 class TrainCB(Callback):
     def __init__(self, n_inp=1, inp_nm=None, lbl_nm=None, preds_nm=None):
         self.n_inp = n_inp
@@ -321,7 +321,7 @@ class TrainCB(Callback):
     def step(self, learn): learn.opt.step()
     def zero_grad(self, learn): learn.opt.zero_grad()
 
-# %% ../core.ipynb 64
+# %% ../core.ipynb 74
 class MomentumLearner(TrainLearner):
     def __init__(self, model, dls, loss_func, lr=None, cbs=None, opt_func=torch.optim.SGD, epoch_sz=None,
                  n_inp=1, inp_nm=None, lbl_nm=None, preds_nm=None, mom=0.85):
@@ -336,19 +336,19 @@ class MomentumLearner(TrainLearner):
                     p.grad.detach_()
                     p.grad *= self.mom
 
-# %% ../core.ipynb 67
+# %% ../core.ipynb 77
 class DeviceCB(Callback):
     def __init__(self, device=def_device): fc.store_attr()
     def before_fit(self, learn):
         if hasattr(learn.model, 'to'): learn.model.to(self.device)
     def before_batch(self, learn): learn.batch = to_device(learn.batch, device=self.device)
 
-# %% ../core.ipynb 69
+# %% ../core.ipynb 79
 class SingleBatchCB(Callback):
     order = 1
     def after_batch(self, learn): raise CancelFitException()
 
-# %% ../core.ipynb 71
+# %% ../core.ipynb 81
 class MetricsCB(Callback):
     def __init__(self, *ms, **metrics):
         for o in ms: metrics[type(o).__name__] = o
@@ -374,7 +374,7 @@ class MetricsCB(Callback):
         for m in self.metrics.values(): m.update(to_cpu(learn.preds), y)
         self.loss.update(to_cpu(learn.loss), weight=len(x))
 
-# %% ../core.ipynb 73
+# %% ../core.ipynb 83
 class ProgressCB(Callback):
     order = MetricsCB.order+1
     def __init__(self, plot=False): self.plot = plot
@@ -397,7 +397,7 @@ class ProgressCB(Callback):
             self.losses.append(learn.loss.item())
             self.mbar.update_graph([[fc.L.range(self.losses), self.losses]])
 
-# %% ../core.ipynb 80
+# %% ../core.ipynb 90
 class CapturePreds(Callback):
     def before_fit(self, learn): self.all_inps,self.all_preds,self.all_targs = [],[],[]
     def after_batch(self, learn):
@@ -407,7 +407,7 @@ class CapturePreds(Callback):
     def after_fit(self, learn):
         self.all_preds,self.all_targs,self.all_inps = map(torch.cat, [self.all_preds,self.all_targs,self.all_inps])
 
-# %% ../core.ipynb 81
+# %% ../core.ipynb 91
 @fc.patch
 def capture_preds(self: Learner, cbs=None, inps=False):
     cp = CapturePreds()
@@ -416,7 +416,7 @@ def capture_preds(self: Learner, cbs=None, inps=False):
     if inps: res = res+(cp.all_inps,)
     return res
 
-# %% ../core.ipynb 86
+# %% ../core.ipynb 96
 @fc.patch
 @fc.delegates(show_images)
 def show_image_batch(self:Learner, max_n=9, cbs=None, **kwargs):
@@ -429,7 +429,7 @@ def show_image_batch(self:Learner, max_n=9, cbs=None, **kwargs):
         titles = [names[i] for i in yb]
     show_images(xb[:max_n], titles=titles[:max_n], **kwargs)
 
-# %% ../core.ipynb 90
+# %% ../core.ipynb 100
 class LRFinderCB(Callback):
     def __init__(self, gamma=1.3, max_mult=3): fc.store_attr()
     
@@ -452,12 +452,12 @@ class LRFinderCB(Callback):
         plt.plot(self.lrs, self.losses)
         plt.xscale('log')
 
-# %% ../core.ipynb 91
+# %% ../core.ipynb 101
 @fc.patch
 def lr_find(self:Learner, gamma=1.3, max_mult=3, start_lr=1e-5, max_epochs=10):
     self.fit(max_epochs, lr=start_lr, cbs=LRFinderCB(gamma=gamma, max_mult=max_mult))
 
-# %% ../core.ipynb 94
+# %% ../core.ipynb 104
 class RecorderCB(Callback):
     def __init__(self, **d): self.d = d
     def before_fit(self, learn):
@@ -475,27 +475,27 @@ class RecorderCB(Callback):
             plt.legend()
             plt.show()
 
-# %% ../core.ipynb 95
+# %% ../core.ipynb 105
 class BaseSchedCB(Callback):
     def __init__(self, sched): self.sched = sched
     def before_fit(self, learn): self.schedo = self.sched(learn.opt)
     def _step(self, learn):
         if learn.training: self.schedo.step()      
 
-# %% ../core.ipynb 96
+# %% ../core.ipynb 106
 class BatchSchedCB(BaseSchedCB):
     def after_batch(self, learn): self._step(learn)
 
-# %% ../core.ipynb 97
+# %% ../core.ipynb 107
 class EpochSchedCB(BaseSchedCB):
     def after_epoch(self, learn): self._step(learn)
 
-# %% ../core.ipynb 98
+# %% ../core.ipynb 108
 class HasLearnCB(Callback):
     def before_fit(self, learn): self.learn = learn 
     def after_fit(self, learn): self.learn = None
 
-# %% ../core.ipynb 100
+# %% ../core.ipynb 110
 class MixedPrecision(TrainCB):
     order = DeviceCB.order+10
     def __init__(self, n_inp=1, dtype=torch.bfloat16):
@@ -516,7 +516,7 @@ class MixedPrecision(TrainCB):
         self.scaler.step(learn.opt)
         self.scaler.update()
 
-# %% ../core.ipynb 102
+# %% ../core.ipynb 112
 class AccelerateCB(TrainCB):
     order = DeviceCB.order+10
     def __init__(self, n_inp=1, mixed_precision="fp16"):
@@ -530,7 +530,7 @@ class AccelerateCB(TrainCB):
     def after_fit(self, learn): learn.model = self.acc.unwrap_model(learn.model)
     def backward(self, learn): self.acc.backward(learn.loss)
 
-# %% ../core.ipynb 104
+# %% ../core.ipynb 114
 def append_stats(hook, mod, inp, outp):
     if not hasattr(hook,'stats'): hook.stats = ([],[],[])
     acts = to_cpu(outp).float()
@@ -538,18 +538,18 @@ def append_stats(hook, mod, inp, outp):
     hook.stats[1].append(acts.std())
     hook.stats[2].append(acts.abs().histc(40,0,10))
 
-# %% ../core.ipynb 105
+# %% ../core.ipynb 115
 def get_min(h):
     h1 = torch.stack(h.stats[2]).t().float()
     return h1[0]/h1.sum(0)
 
-# %% ../core.ipynb 106
+# %% ../core.ipynb 116
 class Hook():
     def __init__(self, m, f): self.hook = m.register_forward_hook(partial(f, self))
     def remove(self): self.hook.remove()
     def __del__(self): self.remove()
 
-# %% ../core.ipynb 107
+# %% ../core.ipynb 117
 class Hooks(list):
     def __init__(self, ms, f): super().__init__([Hook(m, f) for m in ms])
     def __enter__(self, *args): return self
@@ -561,7 +561,7 @@ class Hooks(list):
     def remove(self):
         for h in self: h.remove()
 
-# %% ../core.ipynb 108
+# %% ../core.ipynb 118
 class HooksCallback(Callback):
     def __init__(self, hookfunc, mod_filter=fc.noop, on_train=True, on_valid=False, mods=None):
         fc.store_attr()
@@ -579,11 +579,11 @@ class HooksCallback(Callback):
     def __iter__(self): return iter(self.hooks)
     def __len__(self): return len(self.hooks)
 
-# %% ../core.ipynb 109
+# %% ../core.ipynb 119
 # Thanks to @ste for initial version of histgram plotting code
 def get_hist(h): return torch.stack(h.stats[2]).t().float().log1p()
 
-# %% ../core.ipynb 110
+# %% ../core.ipynb 120
 class ActivationStats(HooksCallback):
     def __init__(self, mod_filter=fc.noop): super().__init__(append_stats, mod_filter)
 
@@ -606,12 +606,12 @@ class ActivationStats(HooksCallback):
         axs[1].set_title('Stdevs')
         plt.legend(fc.L.range(self))
 
-# %% ../core.ipynb 117
+# %% ../core.ipynb 127
 def _flops(x, h, w):
     if x.dim()<3: return x.numel()
     if x.dim()==4: return x.numel()*h*w
 
-# %% ../core.ipynb 118
+# %% ../core.ipynb 128
 @fc.patch
 def summary(self:Learner):
     res = '|Module|Input|Output|Num params|MFLOPS|\n|--|--|--|--|--|\n'
@@ -631,7 +631,7 @@ def summary(self:Learner):
         return Markdown(res)
     else: print(res)
 
-# %% ../core.ipynb 120
+# %% ../core.ipynb 130
 class BatchTransformCB(Callback):
     def __init__(self, tfm, on_train=True, on_val=True): fc.store_attr()
 
@@ -639,7 +639,7 @@ class BatchTransformCB(Callback):
         if (self.on_train and learn.training) or (self.on_val and not learn.training):
             learn.batch = self.tfm(learn.batch)
 
-# %% ../core.ipynb 122
+# %% ../core.ipynb 132
 class GeneralRelu(nn.Module):
     def __init__(self, leak=None, sub=None, maxv=None):
         super().__init__()
@@ -651,7 +651,7 @@ class GeneralRelu(nn.Module):
         if self.maxv is not None: x.clamp_max_(self.maxv)
         return x
 
-# %% ../core.ipynb 125
+# %% ../core.ipynb 135
 def _rand_erase1(x, pct, xm, xs, mn, mx):
     szx = int(pct*x.shape[-2])
     szy = int(pct*x.shape[-1])
@@ -660,21 +660,21 @@ def _rand_erase1(x, pct, xm, xs, mn, mx):
     nn.init.normal_(x[:,:,stx:stx+szx,sty:sty+szy], mean=xm, std=xs)
     x.clamp_(mn, mx)
 
-# %% ../core.ipynb 126
+# %% ../core.ipynb 136
 def rand_erase(x, pct=0.2, min_num=0, max_num = 4):
     xm,xs,mn,mx = x.mean(),x.std(),x.min(),x.max()
     num = random.randint(min_num, max_num)
     for i in range(num): _rand_erase1(x, pct, xm, xs, mn, mx)
     return x
 
-# %% ../core.ipynb 128
+# %% ../core.ipynb 138
 class RandErase(nn.Module):
     def __init__(self, pct=0.2, max_num=4):
         super().__init__()
         self.pct,self.max_num = pct,max_num
     def forward(self, x): return rand_erase(x, self.pct, self.max_num)
 
-# %% ../core.ipynb 129
+# %% ../core.ipynb 139
 def _rand_copy1(x, pct):
     szx = int(pct*x.shape[-2])
     szy = int(pct*x.shape[-1])
@@ -684,20 +684,20 @@ def _rand_copy1(x, pct):
     sty2 = int(random.random()*(1-pct)*x.shape[-1])
     x[:,:,stx1:stx1+szx,sty1:sty1+szy] = x[:,:,stx2:stx2+szx,sty2:sty2+szy]
 
-# %% ../core.ipynb 130
+# %% ../core.ipynb 140
 def rand_copy(x, pct=0.2, min_num=0, max_num=4):
     num = random.randint(min_num, max_num)
     for i in range(num): _rand_copy1(x, pct)
     return x
 
-# %% ../core.ipynb 132
+# %% ../core.ipynb 142
 class RandCopy(nn.Module):
     def __init__(self, pct=0.2, max_num=4):
         super().__init__()
         self.pct,self.max_num = pct,max_num
     def forward(self, x): return rand_copy(x, self.pct, self.max_num)
 
-# %% ../core.ipynb 134
+# %% ../core.ipynb 144
 def clean_ipython_hist():
     # Code in this function mainly copied from IPython source
     if not 'get_ipython' in globals(): return
@@ -712,7 +712,7 @@ def clean_ipython_hist():
     hm.input_hist_raw[:] = [''] * pc
     hm._i = hm._ii = hm._iii = hm._i00 =  ''
 
-# %% ../core.ipynb 135
+# %% ../core.ipynb 145
 def clean_tb():
     # h/t Piotr Czapla
     if hasattr(sys, 'last_traceback'):
@@ -721,7 +721,7 @@ def clean_tb():
     if hasattr(sys, 'last_type'): delattr(sys, 'last_type')
     if hasattr(sys, 'last_value'): delattr(sys, 'last_value')
 
-# %% ../core.ipynb 136
+# %% ../core.ipynb 146
 def clean_mem():
     clean_tb()
     clean_ipython_hist()
