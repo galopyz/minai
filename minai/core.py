@@ -86,16 +86,18 @@ class DataLoaders:
 
 # %% ../core.ipynb 58
 @fc.delegates(plt.Axes.imshow)
-def show_image(im, ax=None, figsize=None, title=None, noframe=True, **kwargs):
+def show_image(im, ax=None, figsize=None, title=None, noframe=True, tfm_x=fc.noop, tfm_y=fc.noop, **kwargs):
     "Show a PIL or PyTorch image on `ax`."
     if fc.hasattrs(im, ('cpu','permute','detach')):
         im = im.detach().cpu()
         if len(im.shape)==3 and im.shape[0]<5: im=im.permute(1,2,0)
     elif not isinstance(im,np.ndarray): im=np.array(im)
+    if fc.hasattrs(title, ('cpu','permute','detach')):
+        title = title.detach().cpu()
     if im.shape[-1]==1: im=im[...,0]
     if ax is None: _,ax = plt.subplots(figsize=figsize)
-    ax.imshow(im, **kwargs)
-    if title is not None: ax.set_title(title)
+    ax.imshow(tfm_x(im), **kwargs)
+    if title is not None: ax.set_title(tfm_y(title))
     ax.set_xticks([]) 
     ax.set_yticks([]) 
     if noframe: ax.axis('off')
@@ -146,10 +148,12 @@ def show_images(ims:list, # Images to show
                 nrows:typing.Union[int, None]=None, # Number of rows in grid
                 ncols:typing.Union[int, None]=None, # Number of columns in grid (auto-calculated if None)
                 titles:typing.Union[list, None]=None, # Optional list of titles for each image
+                tfm_x=fc.noop, tfm_y=fc.noop, 
                 **kwargs):
     "Show all images `ims` as subplots with `rows` using `titles`"
     axs = get_grid(len(ims), nrows, ncols, **kwargs)[1].flat
-    for im,t,ax in zip_longest(ims, [] if titles is None else titles, axs): show_image(im, ax=ax, title=t)
+    for im,t,ax in zip_longest(ims, [] if titles is None else titles, axs): 
+        show_image(im, ax=ax, title=t, tfm_x=tfm_x, tfm_y=tfm_y)
 
 # %% ../core.ipynb 67
 def_device = 'mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
