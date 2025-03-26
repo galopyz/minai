@@ -423,7 +423,7 @@ def capture_preds(self: Learner, cbs=None, inps=False):
 # %% ../core.ipynb 110
 @fc.patch
 @fc.delegates(show_images)
-def show_image_batch(self:Learner, max_n=9, cbs=None, tfm_x=None, tfm_y=None, **kwargs):
+def show_image_batch(self:Learner, max_n=9, cbs=None, tfm_x=fc.noop, tfm_y=fc.noop, **kwargs):
     self.fit(1, cbs=[SingleBatchCB()]+fc.L(cbs))
     xb,yb = to_cpu(self.batch)
     feat = fc.nested_attr(self.dls, 'train.dataset.features')
@@ -431,9 +431,7 @@ def show_image_batch(self:Learner, max_n=9, cbs=None, tfm_x=None, tfm_y=None, **
     else:
         names = feat['label'].names
         titles = [names[i] for i in yb]
-    xb = tfm_x(xb[:max_n]) if tfm_x else xb[:max_n]
-    titles = tfm_y(titles[:max_n]) if tfm_y else titles[:max_n]
-    show_images(xb, titles=titles, **kwargs)
+    show_images(xb[:max_n], titles=titles[:max_n], tfm_x=tfm_x, tfm_y=tfm_y, **kwargs)
 
 # %% ../core.ipynb 114
 class LRFinderCB(Callback):
