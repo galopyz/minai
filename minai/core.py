@@ -555,7 +555,8 @@ class Hook():
 
 # %% ../core.ipynb 131
 class Hooks(list):
-    def __init__(self, ms, f): super().__init__([Hook(m, f) for m in ms])
+#     def __init__(self, ms, f): super().__init__([Hook(m, f) for m in ms])
+    def __init__(self, ms, f): super().__init__([Hook(m, f) for m in ms.children()])
     def __enter__(self, *args): return self
     def __exit__ (self, *args): self.remove()
     def __del__(self): self.remove()
@@ -627,9 +628,9 @@ def summary(self:Learner):
         *_,h,w = outp.shape
         flops = sum(_flops(o, h, w) for o in mod.parameters())/1e6
         totf += flops
-        res += f'|{type(mod).__name__}|{tuple(inp[0].shape)}|{tuple(outp.shape)}|{nparms}|{flops:.1f}|\n'
+        res += f'|{type(mod).__name__}|{tuple(inp[0].shape)}|{tuple(outp.shape)}|{nparms:,}|{flops:.1f}|\n'
     with Hooks(self.model, _f) as hooks: self.fit(1, lr=1, cbs=SingleBatchCB())
-    print(f"Tot params: {totp}; MFLOPS: {totf:.1f}")
+    print(f"Tot params: {totp:,}; MFLOPS: {totf:.1f}")
     if fc.IN_NOTEBOOK:
         from IPython.display import Markdown
         return Markdown(res)
